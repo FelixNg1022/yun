@@ -4,7 +4,9 @@
 
 Text it a question. It casts a hexagram from the exact moment your message arrived (梅花易数), runs it against your 八字 birth chart, interprets the result — and 5 days later, checks back to ask whether it played out.
 
-![demo](./demo.gif)
+<p align="center">
+  <img src="./demo.gif" alt="demo" width="520">
+</p>
 
 ## Why this, why iMessage
 
