@@ -4,6 +4,12 @@ globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
 alwaysApply: false
 ---
 
+# Project notes for Claude
+
+> **Your output will be reviewed by Codex.** Write code and commit messages with that in mind: clear intent, well-scoped diffs, no dead files, tests that make the invariant obvious.
+
+## Runtime
+
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
