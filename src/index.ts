@@ -2,6 +2,7 @@ import { env } from './env.ts'
 import { createImessageClient, type InboundMessage } from './imessage.ts'
 import { openDb, type Db, type UserRow } from './db.ts'
 import { createLlm } from './llm.ts'
+import { createLogger } from './logger.ts'
 import { createRateLimiter } from './ratelimit.ts'
 import { route } from './router.ts'
 import { createScheduler } from './scheduler.ts'
@@ -9,6 +10,7 @@ import { computeBazi } from './divination/bazi.ts'
 import { detectLang } from './lang.ts'
 
 const DB_PATH = process.env.YUN_DB_PATH ?? './yun.db'
+const LOG_PATH = process.env.YUN_LOG_PATH ?? './yun.log'
 
 async function main(): Promise<void> {
   const ownerPhone = env.ownerPhone()
@@ -17,6 +19,7 @@ async function main(): Promise<void> {
   const anthropicKey = env.anthropicApiKey()
   const followUpDays = env.followUpDays()
 
+  const log = createLogger(LOG_PATH)
   const db = openDb(DB_PATH)
   const llm = createLlm(anthropicKey)
   const client = createImessageClient({ debug: false })
@@ -27,7 +30,7 @@ async function main(): Promise<void> {
   const onMessage = async (msg: InboundMessage): Promise<void> => {
     const sender = normalize(msg.sender)
     if (!trusted.has(sender)) {
-      console.log(`[skip] untrusted sender: ${msg.sender}`)
+      log.info(`skip untrusted sender ${msg.sender}`)
       return
     }
 
@@ -36,7 +39,7 @@ async function main(): Promise<void> {
       return
     }
 
-    console.log(`[${msg.receivedAt.toISOString()}] ${msg.sender}: ${msg.text}`)
+    log.info(`inbound ${msg.sender}: ${truncate(msg.text, 120)}`)
 
     try {
       const reply = await route(
@@ -50,7 +53,7 @@ async function main(): Promise<void> {
       )
       await client.reply(msg.sender, reply)
     } catch (err: unknown) {
-      console.error('[route] error:', err)
+      log.error(`route failed for ${msg.sender}`, err)
       await client.reply(msg.sender, apologize(err))
     }
   }
@@ -66,12 +69,12 @@ async function main(): Promise<void> {
   })
   scheduler.start()
 
-  console.log(
-    `运 online. Owner: ${ownerPhone}. DB: ${DB_PATH}. Scheduler: ${intervalMs / 1000}s. Ready.`,
+  log.info(
+    `运 online. owner=${ownerPhone} db=${DB_PATH} log=${LOG_PATH} scheduler=${intervalMs / 1000}s`,
   )
 
   const shutdown = async (signal: string): Promise<void> => {
-    console.log(`\n${signal} received, shutting down…`)
+    log.info(`${signal} received, shutting down`)
     scheduler.stop()
     await client.shutdown()
     db.close()
@@ -105,8 +108,23 @@ function normalize(phone: string): string {
 }
 
 function apologize(err: unknown): string {
+  // Keep the user-facing reply short and opaque. Full error lives in ./yun.log.
   const msg = err instanceof Error ? err.message : String(err)
-  return `hm. something went wrong reading your question: ${msg}`
+  const lower = msg.toLowerCase()
+  if (lower.includes('credit balance') || lower.includes('insufficient')) {
+    return "hmm — can't reach the oracle right now (API billing). try again in a bit."
+  }
+  if (lower.includes('rate') && lower.includes('limit')) {
+    return 'hmm — rate-limited upstream. give it a minute.'
+  }
+  if (lower.includes('timeout') || lower.includes('econnrefused') || lower.includes('fetch failed')) {
+    return 'hmm — network hiccup. try again?'
+  }
+  return "hmm — something went wrong on my end. try again in a bit."
+}
+
+function truncate(text: string, n: number): string {
+  return text.length > n ? text.slice(0, n - 1) + '…' : text
 }
 
 main().catch((err: unknown) => {
