@@ -1,6 +1,7 @@
 import type { Db, Outcome, UserRow } from './db.ts'
 import type { LlmClient } from './llm.ts'
 import { runQuery } from './query.ts'
+import { handleCommand } from './commands.ts'
 
 const OUTCOME_WINDOW_MS = 48 * 60 * 60 * 1000
 
@@ -25,7 +26,7 @@ export async function route(msg: IncomingMessage, deps: RouteDeps): Promise<stri
   const user = ensureUser(msg.phone)
 
   if (text.startsWith('/')) {
-    return handleCommand(text, user)
+    return handleCommand(text, user, { db })
   }
 
   if (looksLikeOutcomeShape(text)) {
@@ -104,14 +105,3 @@ function outcomeAck(v: Outcome, lang: 'en' | 'zh'): string {
   return 'logged: mixed ⚖️'
 }
 
-function handleCommand(text: string, user: UserRow): string {
-  const cmd = text.split(/\s+/)[0]?.toLowerCase()
-  if (cmd === '/help') {
-    return user.preferred_lang === 'zh'
-      ? '运：iMessage 上的算命。直接发问题即可（默认梅花易数；含「小六壬」则用小六壬）。命令：/help /history /stats /methods /lang en|zh'
-      : "运 — iMessage oracle. Just ask a question (default: 梅花易数; include '小六壬' for that method). Commands: /help /history /stats /methods /lang en|zh"
-  }
-  return user.preferred_lang === 'zh'
-    ? '命令还没接好，请过几日再来。'
-    : 'Commands land in the next update.'
-}
