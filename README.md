@@ -22,7 +22,7 @@ Most AI-divination apps are LLM vibes with hexagram-shaped decoration. 运 has a
 
 The LLM _never picks_ the hexagram. It only interprets the structured kernel output. You see the raw cast in every reply:
 
-```
+```text
 🎴 梅花易数 · 2026-04-18 15:37 PDT
 lunar: 丙午年 月3 日2 申时
 upper: (7+3+2) mod 8 = 4 → 震
@@ -45,7 +45,7 @@ No Express. No Next.js. No Docker. No dashboard. Single process on a Mac.
 
 ## Architecture
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │                         iMessage                               │
 └───────────────┬──────────────────────────────▲─────────────────┘
@@ -103,7 +103,7 @@ No Express. No Next.js. No Docker. No dashboard. Single process on a Mac.
 ## Run it
 
 ```bash
-git clone https://github.com/felixng/yun.git
+git clone https://github.com/FelixNg1022/yun.git
 cd yun
 bun install
 cp .env.example .env    # fill in ANTHROPIC_API_KEY, OWNER_PHONE, OWNER_BIRTH
