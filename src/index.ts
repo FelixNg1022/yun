@@ -4,6 +4,7 @@ import { openDb, type Db, type UserRow } from './db.ts'
 import { createLlm } from './llm.ts'
 import { createRateLimiter } from './ratelimit.ts'
 import { route } from './router.ts'
+import { createScheduler } from './scheduler.ts'
 import { computeBazi } from './divination/bazi.ts'
 import { detectLang } from './lang.ts'
 
@@ -55,10 +56,23 @@ async function main(): Promise<void> {
   }
 
   await client.watch(onMessage)
-  console.log(`运 online. Owner: ${ownerPhone}. DB: ${DB_PATH}. Ready.`)
+
+  const intervalMs = env.schedulerIntervalSeconds() * 1000
+  const scheduler = createScheduler({
+    db,
+    reply: client.reply,
+    intervalMs,
+    followUpDays,
+  })
+  scheduler.start()
+
+  console.log(
+    `运 online. Owner: ${ownerPhone}. DB: ${DB_PATH}. Scheduler: ${intervalMs / 1000}s. Ready.`,
+  )
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`\n${signal} received, shutting down…`)
+    scheduler.stop()
     await client.shutdown()
     db.close()
     process.exit(0)

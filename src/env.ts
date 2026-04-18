@@ -30,4 +30,5 @@ export const env = {
   ownerBirth: () => required('OWNER_BIRTH'),
   ownerBirthCity: () => optional('OWNER_BIRTH_CITY', 'Unknown'),
   followUpDays: () => Number(optional('FOLLOW_UP_DAYS', '5')),
+  schedulerIntervalSeconds: () => Number(optional('SCHEDULER_INTERVAL_SECONDS', '60')),
 }
